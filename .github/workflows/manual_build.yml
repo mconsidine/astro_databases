@@ -190,11 +190,11 @@ jobs:
           if [[ "${{ matrix.arch }}" == "aarch64" ]]; then
             cp staged/cedar-detect-server-aarch64 staged/cedar-detect-server
             gh release upload databases-latest staged/cedar-detect-server \
-              --clobber --repo mconsidine/testrepo
+              --clobber --repo mconsidine/astro_databases
           else
             gh release upload databases-latest \
               staged/cedar-detect-server-${{ matrix.arch }} \
-              --clobber --repo mconsidine/testrepo
+              --clobber --repo mconsidine/astro_databases
           fi
 
   # ── sycamore-extract (maturin / PyO3) ───────────────────────────────────────
@@ -322,10 +322,10 @@ jobs:
               # Prefix so matched and main wheels can coexist in the release
               cp "$whl" "matched-filter-${whl}"
               gh release upload databases-latest "matched-filter-${whl}" \
-                --clobber --repo mconsidine/testrepo
+                --clobber --repo mconsidine/astro_databases
             else
               gh release upload databases-latest "$whl" \
-                --clobber --repo mconsidine/testrepo
+                --clobber --repo mconsidine/astro_databases
             fi
           done
 
@@ -380,7 +380,7 @@ jobs:
         run: |
           gh release upload databases-latest \
             cedar-solve/dist/cedar_solve-*-py3-none-any.whl \
-            --clobber --repo mconsidine/testrepo
+            --clobber --repo mconsidine/astro_databases
 
   # ── tetra3rs (cibuildwheel + setuptools-rust; QEMU for arm targets) ──────────
   tetra3rs-build:
@@ -472,7 +472,7 @@ jobs:
         run: |
           for whl in dist/*.whl; do
             gh release upload databases-latest "$whl" \
-              --clobber --repo mconsidine/testrepo
+              --clobber --repo mconsidine/astro_databases
           done
 
   # ── olive-solve / tetra3-py (maturin / PyO3) ────────────────────────────────
@@ -590,7 +590,7 @@ jobs:
         run: |
           for whl in tetra3-py/dist/tetra3-*.whl; do
             gh release upload databases-latest "$whl" \
-              --clobber --repo mconsidine/testrepo
+              --clobber --repo mconsidine/astro_databases
           done
 
   # ── Star databases (cedar_solve_13deg.npz and/or tetra3rs_13deg.bin) ─────────
@@ -600,7 +600,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 120
     steps:
-      - name: Checkout testrepo
+      - name: Checkout astro_databases
         uses: actions/checkout@v4
 
       - name: Set up Python
@@ -615,7 +615,7 @@ jobs:
         run: |
           mkdir -p prereq-wheels
           gh release download databases-latest \
-            --repo mconsidine/testrepo \
+            --repo mconsidine/astro_databases \
             --pattern "cedar_solve-*-py3-none-any.whl" \
             --dir prereq-wheels
 
@@ -626,7 +626,7 @@ jobs:
         run: |
           mkdir -p prereq-wheels
           gh release download databases-latest \
-            --repo mconsidine/testrepo \
+            --repo mconsidine/astro_databases \
             --pattern "tetra3rs-*x86_64*.whl" \
             --dir prereq-wheels
 
@@ -704,7 +704,7 @@ jobs:
           [[ -f databases/tetra3rs_13deg.bin ]]    && FILES+=(databases/tetra3rs_13deg.bin)
           if [[ ${#FILES[@]} -gt 0 ]]; then
             gh release upload databases-latest "${FILES[@]}" \
-              --clobber --repo mconsidine/testrepo
+              --clobber --repo mconsidine/astro_databases
           else
             echo "::warning::No database files to upload"
           fi
@@ -721,7 +721,7 @@ jobs:
     if: ${{ !cancelled() && inputs.record-sha == 'true' }}
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout testrepo
+      - name: Checkout astro_databases
         uses: actions/checkout@v4
         with:
           ref: ${{ github.ref_name }}
