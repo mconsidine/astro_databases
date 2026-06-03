@@ -614,10 +614,11 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           mkdir -p prereq-wheels
-          gh release download databases-latest \
-            --repo mconsidine/astro_databases \
-            --pattern "cedar_solve-*-py3-none-any.whl" \
-            --dir prereq-wheels
+          # gh release download databases-latest \
+          #   --repo mconsidine/astro_databases \
+          #   --pattern "cedar_solve-*-py3-none-any.whl" \
+          #   --dir prereq-wheels
+          cp databases-latest/cedar_solve-*-py3-none-any.whl /prereq-wheels/*
 
       - name: Download tetra3rs x86_64 wheel from release
         if: ${{ inputs.component != 'db-npz' }}
@@ -625,10 +626,11 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           mkdir -p prereq-wheels
-          gh release download databases-latest \
-            --repo mconsidine/astro_databases \
-            --pattern "tetra3rs-*x86_64*.whl" \
-            --dir prereq-wheels
+          # gh release download databases-latest \
+          #   --repo mconsidine/astro_databases \
+          #   --pattern "tetra3rs-*x86_64*.whl" \
+          #   --dir prereq-wheels
+          cp databases-latest/tetra3rs-*x86_64*.whl /prereq-wheels/*
 
       - name: Install packages
         run: |
