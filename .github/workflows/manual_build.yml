@@ -618,7 +618,7 @@ jobs:
           #   --repo mconsidine/astro_databases \
           #   --pattern "cedar_solve-*-py3-none-any.whl" \
           #   --dir prereq-wheels
-          cp databases-latest/cedar_solve-*-py3-none-any.whl /prereq-wheels/*
+          cp databases-latest/cedar_solve-0.5.1-py3-none-any.whl /prereq-wheels/cedar_solve-0.5.1-py3-none-any.whl
 
       - name: Download tetra3rs x86_64 wheel from release
         if: ${{ inputs.component != 'db-npz' }}
@@ -630,7 +630,7 @@ jobs:
           #   --repo mconsidine/astro_databases \
           #   --pattern "tetra3rs-*x86_64*.whl" \
           #   --dir prereq-wheels
-          cp databases-latest/tetra3rs-*x86_64*.whl /prereq-wheels/*
+          cp databases-latest/tetra3rs-0.7.4-cp313-cp313-manylinux_2_17_x86_64.manylinux_2_17_x86_64.whl /prereq-wheels/tetra3rs-0.7.4-cp313-cp313-manylinux_2_17_x86_64.manylinux_2_17_x86_64.whl
 
       - name: Install packages
         run: |
