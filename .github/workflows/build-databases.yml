@@ -1,0 +1,108 @@
+name: Build Databases
+
+# Generates the star databases from the catalogs committed under data/
+# and publishes them as assets on a tagged GitHub release.
+#
+# Triggers:
+#   - push of a tag matching v*  → build + create release for that tag
+#   - workflow_dispatch          → build + upload CI artifact only,
+#                                  unless a tag name is supplied
+#
+# Consumers vendor the results with e.g.:
+#   gh release download vX.Y --repo mconsidine/astro_databases --pattern '*.npz'
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to publish to (blank = build only, no release)'
+        required: false
+        default: ''
+      tetra3rs-version:
+        description: 'tetra3rs PyPI version to generate with (blank = latest)'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install generators
+        env:
+          CEDARSOLVE_REF: ${{ vars.CEDARSOLVE_REF || 'master' }}
+        run: |
+          pip install --upgrade pip numpy
+          pip install "git+https://github.com/mconsidine/cedar-solve.git@${CEDARSOLVE_REF}"
+          if [[ -n "${{ inputs.tetra3rs-version }}" ]]; then
+            pip install "tetra3rs==${{ inputs.tetra3rs-version }}"
+          else
+            pip install tetra3rs
+          fi
+          pip show cedar-solve tetra3rs | grep -E '^(Name|Version):'
+
+      - name: Generate databases
+        run: |
+          python scripts/generate_databases.py --output-dir databases
+          ls -lh databases/
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: star-databases
+          path: |
+            databases/cedar_solve_13deg.npz
+            databases/tetra3rs_13deg.bin
+            databases/manifest.json
+          retention-days: 14
+          if-no-files-found: error
+
+      - name: Resolve release tag
+        id: tag
+        run: |
+          if [[ "${{ github.event_name }}" == "push" ]]; then
+            echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publish release
+        if: ${{ steps.tag.outputs.tag != '' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          {
+            echo "Star databases generated from \`data/\` catalogs at ${GITHUB_SHA}."
+            echo
+            echo '```json'
+            cat databases/manifest.json
+            echo '```'
+          } > release-notes.md
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$TAG" --clobber --repo "$GITHUB_REPOSITORY" \
+              databases/cedar_solve_13deg.npz \
+              databases/tetra3rs_13deg.bin \
+              databases/manifest.json
+          else
+            gh release create "$TAG" \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "Star databases $TAG" \
+              --notes-file release-notes.md \
+              databases/cedar_solve_13deg.npz \
+              databases/tetra3rs_13deg.bin \
+              databases/manifest.json
+          fi
