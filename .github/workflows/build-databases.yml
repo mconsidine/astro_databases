@@ -45,11 +45,14 @@ jobs:
         env:
           CEDARSOLVE_REF: ${{ vars.CEDARSOLVE_REF || 'master' }}
         run: |
-          pip install --upgrade pip
-          # cedar-solve 0.5.1 pins Pillow<9 etc., which have no cp313 wheels;
-          # the pins are stale, so install --no-deps and supply current deps.
-          pip install numpy scipy pillow
-          pip install --no-deps "git+https://github.com/mconsidine/cedar-solve.git@${CEDARSOLVE_REF}"
+          pip install --upgrade pip uv
+          # cedar-solve declares stale ceilings (Pillow<9, numpy caps, ...)
+          # that predate Python 3.13. uv --override replaces just those
+          # declared requirements while still resolving the rest of the
+          # dependency tree, so new upstream deps are picked up automatically.
+          printf 'pillow\nnumpy\nscipy\n' > /tmp/dep-overrides.txt
+          uv pip install --system --override /tmp/dep-overrides.txt \
+            "git+https://github.com/mconsidine/cedar-solve.git@${CEDARSOLVE_REF}"
           if [[ -n "${{ inputs.tetra3rs-version }}" ]]; then
             pip install "tetra3rs==${{ inputs.tetra3rs-version }}"
           else
