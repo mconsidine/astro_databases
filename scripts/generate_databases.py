@@ -2,9 +2,16 @@
 """
 Generate star catalog databases for the Pi Zero 2W finder.
 
-Two formats are produced:
-  cedar_solve_13deg.npz  -- cedar-solve / olive-solve (.npz, from data/hip_main.dat.gz)
+Two formats are produced, both from the same merged Gaia DR3 + Hipparcos
+star list (63,491 stars to G = 8.0):
+  cedar_solve_13deg.npz  -- cedar-solve / olive-solve (.npz, from
+                            data/gaia_hip_main.dat.gz — hip_main-format
+                            file derived from the Gaia merge by
+                            scripts/gaia_to_hip.py)
   tetra3rs_13deg.bin     -- tetra3rs (.bin, from data/gaia_hipp_merged.bin)
+
+Pass --hip-catalog data/hip_main.dat.gz to build the .npz from the
+original Hipparcos catalog instead (41,394 stars to V = 8.0).
 
 Both databases cover 10.5°-14° FOV, star_max_magnitude=8.0. All catalog
 inputs are committed in this repository under data/ — no network access
@@ -35,7 +42,7 @@ STAR_MAX_MAGNITUDE = 8.0
 EPOCH_YEAR = 2026.0
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
-DEFAULT_HIP_CATALOG = REPO_ROOT / "data" / "hip_main.dat.gz"
+DEFAULT_HIP_CATALOG = REPO_ROOT / "data" / "gaia_hip_main.dat.gz"
 DEFAULT_GAIA_CATALOG = REPO_ROOT / "data" / "gaia_hipp_merged.bin"
 
 
@@ -80,16 +87,18 @@ def generate_cedar_solve(output_dir: pathlib.Path, hip_catalog: pathlib.Path) ->
 
     db_stem = output_dir / "cedar_solve_13deg"
     print(f"Generating cedar-solve database → {db_stem}.npz")
-    print(f"  fov_range=({FOV_MIN}, {FOV_MAX}), star_max_magnitude={STAR_MAX_MAGNITUDE}")
+    print(f"  max_fov={FOV_MAX}, min_fov={FOV_MIN}, star_max_magnitude={STAR_MAX_MAGNITUDE}")
 
-    t3 = t3_mod.Tetra3()
+    # save_as must be a pathlib.Path: cedar-solve treats a str as a file
+    # name inside its own package data directory
+    t3 = t3_mod.Tetra3(load_database=None)
     t3.generate_database(
-        save_as=str(db_stem),
-        fov_range=(FOV_MIN, FOV_MAX),
+        save_as=db_stem.resolve(),
+        max_fov=FOV_MAX,
+        min_fov=FOV_MIN,
         star_max_magnitude=STAR_MAX_MAGNITUDE,
-        catalog="hip",
-        pattern_stars_per_fov=10,
-        verification_stars_per_fov=30,
+        star_catalog="hip_main",
+        epoch_proper_motion=EPOCH_YEAR,
     )
     result = pathlib.Path(str(db_stem) + ".npz")
     print(f"  Done: {result.stat().st_size / 1e6:.1f} MB")
@@ -171,8 +180,8 @@ def main() -> None:
     ap.add_argument("--output-dir", default="databases",
                     help="Output directory (default: databases)")
     ap.add_argument("--hip-catalog", default=str(DEFAULT_HIP_CATALOG),
-                    help="Path to hip_main.dat or .dat.gz "
-                         "(default: data/hip_main.dat.gz)")
+                    help="Path to a hip_main-format .dat or .dat.gz catalog "
+                         "(default: data/gaia_hip_main.dat.gz)")
     ap.add_argument("--gaia-catalog", default=str(DEFAULT_GAIA_CATALOG),
                     help="Path to merged Gaia binary catalog "
                          "(default: data/gaia_hipp_merged.bin)")
@@ -194,7 +203,7 @@ def main() -> None:
         if not hip_src.exists():
             errors.append(f"cedar-solve: hip catalog not found: {hip_src}")
         else:
-            inputs["hip_main"] = hip_src
+            inputs["hip_catalog"] = hip_src
             try:
                 hip_catalog = resolve_hip_catalog(hip_src, output_dir)
                 outputs["cedar_solve"] = generate_cedar_solve(output_dir, hip_catalog)
