@@ -20,8 +20,8 @@ on:
         description: 'Release tag to publish to (blank = build only, no release)'
         required: false
         default: ''
-      tetra3rs-version:
-        description: 'tetra3rs PyPI version to generate with (blank = latest)'
+      tetra3rs-ref:
+        description: 'mconsidine/tetra3rs branch/tag/SHA to build with (blank = main, which tracks upstream)'
         required: false
         default: ''
 
@@ -44,6 +44,7 @@ jobs:
       - name: Install generators
         env:
           CEDARSOLVE_REF: ${{ vars.CEDARSOLVE_REF || 'master' }}
+          TETRA3RS_REF: ${{ inputs.tetra3rs-ref || vars.TETRA3RS_REF || 'main' }}
         run: |
           pip install --upgrade pip uv
           # cedar-solve declares stale ceilings (Pillow<9, numpy caps, ...)
@@ -53,11 +54,14 @@ jobs:
           printf 'pillow\nnumpy\nscipy\n' > /tmp/dep-overrides.txt
           uv pip install --system --override /tmp/dep-overrides.txt \
             "git+https://github.com/mconsidine/cedar-solve.git@${CEDARSOLVE_REF}"
-          if [[ -n "${{ inputs.tetra3rs-version }}" ]]; then
-            pip install "tetra3rs==${{ inputs.tetra3rs-version }}"
-          else
-            pip install tetra3rs
-          fi
+          # tetra3rs is built from the fork so the database matches deployed
+          # code; the fork's main tracks upstream, so the default is
+          # equivalent to a PyPI install. Compiles the Rust extension
+          # (~a few minutes on the hosted runner's preinstalled toolchain).
+          SHA=$(git ls-remote "https://github.com/mconsidine/tetra3rs.git" \
+            "refs/heads/${TETRA3RS_REF}" "refs/tags/${TETRA3RS_REF}" | head -1 | cut -f1)
+          echo "tetra3rs ref: ${TETRA3RS_REF} (${SHA:-$TETRA3RS_REF})"
+          pip install "git+https://github.com/mconsidine/tetra3rs.git@${TETRA3RS_REF}"
           pip show cedar-solve tetra3rs | grep -E '^(Name|Version):'
 
       - name: Generate databases
