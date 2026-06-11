@@ -80,16 +80,16 @@ def generate_cedar_solve(output_dir: pathlib.Path, hip_catalog: pathlib.Path) ->
 
     db_stem = output_dir / "cedar_solve_13deg"
     print(f"Generating cedar-solve database → {db_stem}.npz")
-    print(f"  fov_range=({FOV_MIN}, {FOV_MAX}), star_max_magnitude={STAR_MAX_MAGNITUDE}")
+    print(f"  max_fov={FOV_MAX}, min_fov={FOV_MIN}, star_max_magnitude={STAR_MAX_MAGNITUDE}")
 
-    t3 = t3_mod.Tetra3()
+    t3 = t3_mod.Tetra3(load_database=None)
     t3.generate_database(
         save_as=str(db_stem),
-        fov_range=(FOV_MIN, FOV_MAX),
+        max_fov=FOV_MAX,
+        min_fov=FOV_MIN,
         star_max_magnitude=STAR_MAX_MAGNITUDE,
-        catalog="hip",
-        pattern_stars_per_fov=10,
-        verification_stars_per_fov=30,
+        star_catalog="hip_main",
+        epoch_proper_motion=EPOCH_YEAR,
     )
     result = pathlib.Path(str(db_stem) + ".npz")
     print(f"  Done: {result.stat().st_size / 1e6:.1f} MB")
