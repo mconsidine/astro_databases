@@ -2,9 +2,16 @@
 """
 Generate star catalog databases for the Pi Zero 2W finder.
 
-Two formats are produced:
-  cedar_solve_13deg.npz  -- cedar-solve / olive-solve (.npz, from data/hip_main.dat.gz)
+Two formats are produced, both from the same merged Gaia DR3 + Hipparcos
+star list (63,491 stars to G = 8.0):
+  cedar_solve_13deg.npz  -- cedar-solve / olive-solve (.npz, from
+                            data/gaia_hip_main.dat.gz — hip_main-format
+                            file derived from the Gaia merge by
+                            scripts/gaia_to_hip.py)
   tetra3rs_13deg.bin     -- tetra3rs (.bin, from data/gaia_hipp_merged.bin)
+
+Pass --hip-catalog data/hip_main.dat.gz to build the .npz from the
+original Hipparcos catalog instead (41,394 stars to V = 8.0).
 
 Both databases cover 10.5°-14° FOV, star_max_magnitude=8.0. All catalog
 inputs are committed in this repository under data/ — no network access
@@ -35,7 +42,7 @@ STAR_MAX_MAGNITUDE = 8.0
 EPOCH_YEAR = 2026.0
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
-DEFAULT_HIP_CATALOG = REPO_ROOT / "data" / "hip_main.dat.gz"
+DEFAULT_HIP_CATALOG = REPO_ROOT / "data" / "gaia_hip_main.dat.gz"
 DEFAULT_GAIA_CATALOG = REPO_ROOT / "data" / "gaia_hipp_merged.bin"
 
 
@@ -173,8 +180,8 @@ def main() -> None:
     ap.add_argument("--output-dir", default="databases",
                     help="Output directory (default: databases)")
     ap.add_argument("--hip-catalog", default=str(DEFAULT_HIP_CATALOG),
-                    help="Path to hip_main.dat or .dat.gz "
-                         "(default: data/hip_main.dat.gz)")
+                    help="Path to a hip_main-format .dat or .dat.gz catalog "
+                         "(default: data/gaia_hip_main.dat.gz)")
     ap.add_argument("--gaia-catalog", default=str(DEFAULT_GAIA_CATALOG),
                     help="Path to merged Gaia binary catalog "
                          "(default: data/gaia_hipp_merged.bin)")
@@ -196,7 +203,7 @@ def main() -> None:
         if not hip_src.exists():
             errors.append(f"cedar-solve: hip catalog not found: {hip_src}")
         else:
-            inputs["hip_main"] = hip_src
+            inputs["hip_catalog"] = hip_src
             try:
                 hip_catalog = resolve_hip_catalog(hip_src, output_dir)
                 outputs["cedar_solve"] = generate_cedar_solve(output_dir, hip_catalog)

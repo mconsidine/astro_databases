@@ -15,13 +15,19 @@ databases are published as assets on tagged GitHub releases — they are
 
 ## Generated databases
 
-Both cover 10.5°–14° FOV, `star_max_magnitude=8.0`, proper-motion epoch 2026.0:
+Both cover 10.5°–14° FOV, `star_max_magnitude=8.0`, proper-motion epoch
+2026.0, and are built from the **same merged Gaia DR3 + Hipparcos star
+list** (63,491 stars to G = 8.0):
 
 | Asset | Solver | Built from |
 |-------|--------|-----------|
-| `cedar_solve_13deg.npz` | cedar-solve / olive-solve | `data/hip_main.dat.gz` |
+| `cedar_solve_13deg.npz` | cedar-solve / olive-solve | `data/gaia_hip_main.dat.gz` |
 | `tetra3rs_13deg.bin` | tetra3rs | `data/gaia_hipp_merged.bin` |
 | `manifest.json` | — | Generation parameters, input/output SHA-256s, generator versions |
+
+To build the `.npz` from the original Hipparcos catalog instead (41,394
+stars to V = 8.0), pass `--hip-catalog data/hip_main.dat.gz` to the
+generation script.
 
 ## Releasing
 
@@ -72,3 +78,11 @@ https://github.com/ssmichael1/tetra3rs/blob/main/scripts/download_gaia_catalog.p
 The `.bin` is the compact binary form consumed by
 `tetra3rs.SolverDatabase.generate_from_gaia(catalog_path=...)`; the `.csv`
 is the same data in readable form.
+
+**`gaia_hip_main.dat.gz`** — the Gaia merge above, reformatted into the
+hip_main pipe-delimited layout so that stock esa/tetra3, cedar-solve, and
+olive-solve consume it unmodified. Derived file: regenerate with
+`python scripts/gaia_to_hip.py` whenever `gaia_hipp_merged.csv` changes.
+Positions are de-propagated from Gaia's 2016.0 epoch to the parsers'
+assumed 1991.25; magnitudes are Gaia G band; star IDs are synthetic row
+numbers, **not** HIP numbers. See the script docstring for details.
