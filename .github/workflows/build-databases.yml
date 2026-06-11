@@ -45,8 +45,11 @@ jobs:
         env:
           CEDARSOLVE_REF: ${{ vars.CEDARSOLVE_REF || 'master' }}
         run: |
-          pip install --upgrade pip numpy
-          pip install "git+https://github.com/mconsidine/cedar-solve.git@${CEDARSOLVE_REF}"
+          pip install --upgrade pip
+          # cedar-solve 0.5.1 pins Pillow<9 etc., which have no cp313 wheels;
+          # the pins are stale, so install --no-deps and supply current deps.
+          pip install numpy scipy pillow
+          pip install --no-deps "git+https://github.com/mconsidine/cedar-solve.git@${CEDARSOLVE_REF}"
           if [[ -n "${{ inputs.tetra3rs-version }}" ]]; then
             pip install "tetra3rs==${{ inputs.tetra3rs-version }}"
           else
