@@ -82,9 +82,11 @@ def generate_cedar_solve(output_dir: pathlib.Path, hip_catalog: pathlib.Path) ->
     print(f"Generating cedar-solve database → {db_stem}.npz")
     print(f"  max_fov={FOV_MAX}, min_fov={FOV_MIN}, star_max_magnitude={STAR_MAX_MAGNITUDE}")
 
+    # save_as must be a pathlib.Path: cedar-solve treats a str as a file
+    # name inside its own package data directory
     t3 = t3_mod.Tetra3(load_database=None)
     t3.generate_database(
-        save_as=str(db_stem),
+        save_as=db_stem.resolve(),
         max_fov=FOV_MAX,
         min_fov=FOV_MIN,
         star_max_magnitude=STAR_MAX_MAGNITUDE,
