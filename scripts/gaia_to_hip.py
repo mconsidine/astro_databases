@@ -1,11 +1,18 @@
 #!/usr/bin/env python3
 """
-Convert data/gaia_hipp_merged.csv into a hip_main-format catalog file.
+Convert a gaia_hipp_merged.csv into a hip_main-format catalog file.
 
-The output (data/gaia_hip_main.dat.gz) is a pipe-delimited file laid out
-so that the stock hip_main parsers in esa/tetra3, cedar-solve, and
-olive-solve read it unmodified. Only the six fields those parsers use
-are populated:
+By default reads data/gaia_hipp_merged.csv and writes data/gaia_hip_main.dat.gz.
+Pass --src and --dest to process a different catalog (e.g. the deeper G ≤ 9.0
+catalog used for the "deep" database variant):
+
+  python scripts/gaia_to_hip.py \
+      --src data/gaia_hipp_merged_mag90.csv \
+      --dest data/gaia_hipp_merged_mag90.dat.gz
+
+The output is a pipe-delimited file laid out so that the stock hip_main parsers
+in esa/tetra3, cedar-solve, and olive-solve read it unmodified. Only the six
+fields those parsers use are populated:
 
   field 1   synthetic star ID (1-based row number — NOT a HIP number)
   field 5   magnitude (Gaia G band)
@@ -25,9 +32,11 @@ from either approximation is a few arcseconds, far below the ~51"/px
 plate scale of the target instrument.
 
 Usage:
-  python scripts/gaia_to_hip.py        # rewrites data/gaia_hip_main.dat.gz
+  python scripts/gaia_to_hip.py                      # rewrites data/gaia_hip_main.dat.gz
+  python scripts/gaia_to_hip.py --src SRC --dest DST # convert an arbitrary catalog
 """
 
+import argparse
 import csv
 import gzip
 import io
@@ -35,8 +44,8 @@ import math
 import pathlib
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
-SRC = REPO_ROOT / "data" / "gaia_hipp_merged.csv"
-DEST = REPO_ROOT / "data" / "gaia_hip_main.dat.gz"
+DEFAULT_SRC = REPO_ROOT / "data" / "gaia_hipp_merged.csv"
+DEFAULT_DEST = REPO_ROOT / "data" / "gaia_hip_main.dat.gz"
 
 GAIA_EPOCH = 2016.0
 HIP_PM_ORIGIN = 1991.25
@@ -47,9 +56,9 @@ MAS_TO_DEG = 1.0 / 1000.0 / 3600.0
 MIN_COS_DEC = 0.05
 
 
-def convert() -> None:
+def convert(src: pathlib.Path, dest: pathlib.Path) -> None:
     lines = []
-    with open(SRC, newline="") as f:
+    with open(src, newline="") as f:
         reader = csv.reader(f)
         next(reader)  # header
         for i, row in enumerate(reader, start=1):
@@ -84,9 +93,26 @@ def convert() -> None:
     buf = io.BytesIO()
     with gzip.GzipFile(fileobj=buf, mode="wb", mtime=0) as gz:
         gz.write(payload)
-    DEST.write_bytes(buf.getvalue())
-    print(f"Wrote {DEST} ({len(lines)} stars, {DEST.stat().st_size / 1e6:.1f} MB gz)")
+    dest.write_bytes(buf.getvalue())
+    print(f"Wrote {dest} ({len(lines)} stars, {dest.stat().st_size / 1e6:.1f} MB gz)")
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser(
+        description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    ap.add_argument(
+        "--src", default=str(DEFAULT_SRC),
+        help="Source CSV catalog (default: data/gaia_hipp_merged.csv)",
+    )
+    ap.add_argument(
+        "--dest", default=str(DEFAULT_DEST),
+        help="Destination .dat.gz file (default: data/gaia_hip_main.dat.gz)",
+    )
+    args = ap.parse_args()
+    convert(pathlib.Path(args.src), pathlib.Path(args.dest))
 
 
 if __name__ == "__main__":
-    convert()
+    main()
