@@ -3,6 +3,14 @@ name: Build Databases
 # Generates the star databases from the catalogs committed under data/
 # and publishes them as assets on a tagged GitHub release.
 #
+# Standard databases (G ≤ 8.0):
+#   cedar_solve_13deg.npz, tetra3rs_13deg.bin
+#
+# Deep databases (G ≤ 8.5, for poor-transparency nights):
+#   cedar_solve_13deg_mag85.npz, tetra3rs_13deg_mag85.bin
+#   Built only when data/gaia_hipp_merged_mag90.{bin,dat.gz} are present.
+#   See README.md for how to generate the deeper source catalog.
+#
 # Triggers:
 #   - push of a tag matching v*  → build + create release for that tag
 #   - workflow_dispatch          → build + upload CI artifact only,
@@ -66,13 +74,31 @@ jobs:
 
       - name: Generate databases
         run: |
-          python scripts/generate_databases.py --output-dir databases
+          # --all-variants builds standard (G ≤ 8.0) unconditionally and the
+          # deep variant (G ≤ 8.5) only when the deeper source catalog is
+          # present in data/. Missing deep catalog → INFO log + skip, not error.
+          python scripts/generate_databases.py --output-dir databases --all-variants
           ls -lh databases/
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: star-databases
+          path: |
+            databases/cedar_solve_13deg.npz
+            databases/tetra3rs_13deg.bin
+            databases/cedar_solve_13deg_mag85.npz
+            databases/tetra3rs_13deg_mag85.bin
+            databases/manifest.json
+          retention-days: 14
+          # Standard files are always produced; deep files may be absent when
+          # the deeper source catalog has not yet been committed.
+          if-no-files-found: warn
+
+      - name: Upload artifact (standard only, error if absent)
+        uses: actions/upload-artifact@v4
+        with:
+          name: star-databases-standard
           path: |
             databases/cedar_solve_13deg.npz
             databases/tetra3rs_13deg.bin
@@ -102,17 +128,26 @@ jobs:
             cat databases/manifest.json
             echo '```'
           } > release-notes.md
+
+          # Always attach standard databases.
+          ASSETS=(
+            databases/cedar_solve_13deg.npz
+            databases/tetra3rs_13deg.bin
+            databases/manifest.json
+          )
+
+          # Attach deep databases only when they were built.
+          for f in databases/cedar_solve_13deg_mag85.npz databases/tetra3rs_13deg_mag85.bin; do
+            [[ -f "$f" ]] && ASSETS+=("$f")
+          done
+
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             gh release upload "$TAG" --clobber --repo "$GITHUB_REPOSITORY" \
-              databases/cedar_solve_13deg.npz \
-              databases/tetra3rs_13deg.bin \
-              databases/manifest.json
+              "${ASSETS[@]}"
           else
             gh release create "$TAG" \
               --repo "$GITHUB_REPOSITORY" \
               --title "Star databases $TAG" \
               --notes-file release-notes.md \
-              databases/cedar_solve_13deg.npz \
-              databases/tetra3rs_13deg.bin \
-              databases/manifest.json
+              "${ASSETS[@]}"
           fi
