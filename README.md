@@ -12,6 +12,7 @@ databases are published as assets on tagged GitHub releases — they are
 | `data/` | Committed source catalogs (see provenance below) |
 | `scripts/generate_databases.py` | Builds solver databases + `manifest.json` |
 | `scripts/gaia_to_hip.py` | Converts `gaia_hipp_merged.csv` → `gaia_hip_main.dat.gz` |
+| `scripts/build_star_names.py` | Builds `data/star_names.csv` (brightest-star labels) from HYG |
 | `.github/workflows/build-databases.yml` | CI: builds and attaches results to a release |
 
 ## Generated databases
@@ -153,6 +154,15 @@ https://cdsarc.cds.unistra.fr/ftp/cats/I/239/
 
 **`hip2.dat.gz`** — I/311 Hipparcos, the New Reduction (van Leeuwen, 2007).
 Astron. Astrophys. 474, 653. https://cdsarc.cds.unistra.fr/ftp/cats/I/311/
+
+**`star_names.csv`** — compact brightest-star naming table (15,567 stars to
+mag 7.0): `ra_deg, dec_deg, mag, name, desig`. Built from the HYG database
+(Hipparcos + Yale BSC + Gliese; https://github.com/astronexus/HYG-Database) by
+`scripts/build_star_names.py`, which downloads HYG, trims to the magnitude
+limit, and formats proper / Bayer (α Tau) / Flamsteed (87 Tau) / HR / HIP
+labels. Regenerate with `python scripts/build_star_names.py`. Attached to each
+release (and SHA-recorded in `manifest.json`) so the eFinder can label the
+brightest star in a solved field; not tied to a specific solver database.
 
 **`gaia_hipp_merged.bin`, `gaia_hipp_merged.csv`** — Gaia DR3 merged with
 Hipparcos for bright stars (G < 4), 63,491 stars to G ≈ 8.0, created via

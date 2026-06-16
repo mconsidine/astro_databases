@@ -90,6 +90,7 @@ jobs:
             databases/cedar_solve_13deg_mag85.npz
             databases/tetra3rs_13deg_mag85.bin
             databases/manifest.json
+            databases/star_names.csv
           retention-days: 14
           # Standard files are always produced; deep files may be absent when
           # the deeper source catalog has not yet been committed.
@@ -103,6 +104,7 @@ jobs:
             databases/cedar_solve_13deg.npz
             databases/tetra3rs_13deg.bin
             databases/manifest.json
+            databases/star_names.csv
           retention-days: 14
           if-no-files-found: error
 
@@ -134,6 +136,7 @@ jobs:
             databases/cedar_solve_13deg.npz
             databases/tetra3rs_13deg.bin
             databases/manifest.json
+            databases/star_names.csv
           )
 
           # Attach deep databases only when they were built.
