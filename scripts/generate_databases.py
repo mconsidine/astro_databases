@@ -71,6 +71,11 @@ DEFAULT_GAIA_CATALOG = REPO_ROOT / "data" / "gaia_hipp_merged.bin"
 DEEP_HIP_CATALOG = REPO_ROOT / "data" / "gaia_hipp_merged_mag90.dat.gz"
 DEEP_GAIA_CATALOG = REPO_ROOT / "data" / "gaia_hipp_merged_mag90.bin"
 
+# Static star-names catalog (built by scripts/build_star_names.py). Not a
+# generated database — it is attached to releases and recorded in the manifest
+# so the device can label the brightest star in a solved field.
+STAR_NAMES_CATALOG = REPO_ROOT / "data" / "star_names.csv"
+
 
 def _magnitude_suffix(max_magnitude: float) -> str:
     """Return output-file suffix for a given magnitude limit.
@@ -396,6 +401,15 @@ def main() -> None:
         all_inputs.update(inputs)
         all_outputs.update(outputs)
         all_errors.extend(errors)
+
+    # Attach the static star-names catalog (if committed) so it is uploaded
+    # and hash-recorded alongside the databases for the device to verify.
+    if STAR_NAMES_CATALOG.exists():
+        dest = output_dir / STAR_NAMES_CATALOG.name
+        if dest.resolve() != STAR_NAMES_CATALOG.resolve():
+            shutil.copy(STAR_NAMES_CATALOG, dest)
+        all_outputs["star_names"] = dest
+        print(f"Including star-names catalog: {dest.name}")
 
     if all_outputs:
         # Collect magnitude parameters for manifest.
