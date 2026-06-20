@@ -25,7 +25,7 @@ list** (63,491 stars to G = 8.0):
 
 | Asset | Solver | Built from |
 |-------|--------|-----------|
-| `cedar_solve_13deg.npz` | cedar-solve / olive-solve | `data/gaia_hip_main.dat.gz` |
+| `diofinder_13deg.npz` | cedar-solve / olive-solve | `data/gaia_hip_main.dat.gz` |
 | `tetra3rs_13deg.bin` | tetra3rs | `data/gaia_hipp_merged.bin` |
 | `manifest.json` | — | Generation parameters, input/output SHA-256s, generator versions |
 
@@ -37,7 +37,7 @@ because of its size; see [Regenerating the deep source catalog](#regenerating-th
 
 | Asset | Solver | Built from |
 |-------|--------|-----------|
-| `cedar_solve_13deg_mag85.npz` | cedar-solve / olive-solve | `data/gaia_hipp_merged_mag90.dat.gz` |
+| `diofinder_13deg_mag85.npz` | cedar-solve / olive-solve | `data/gaia_hipp_merged_mag90.dat.gz` |
 | `tetra3rs_13deg_mag85.bin` | tetra3rs | `data/gaia_hipp_merged_mag90.bin` |
 
 The deep files are attached to releases whenever the deeper source catalog is
