@@ -19,19 +19,22 @@ databases are published as assets on tagged GitHub releases — they are
 
 ### Standard build (G ≤ 8.0)
 
-Both cover 10.5°–14° FOV, `star_max_magnitude=8.0`, proper-motion epoch
-2026.0, and are built from the **same merged Gaia DR3 + Hipparcos star
-list** (63,491 stars to G = 8.0):
+Both use `star_max_magnitude=8.0`, proper-motion epoch 2026.0, and are built
+from the **same merged Gaia DR3 + Hipparcos star list** (63,491 stars to
+G = 8.0). They differ in FOV band: the diofinder database covers a tight
+**13°–14°** band (the device's fixed ~13.64° lens), while the tetra3rs
+database covers the wider **10.5°–14°** band:
 
-| Asset | Solver | Built from |
-|-------|--------|-----------|
-| `diofinder_13deg.npz` | cedar-solve / olive-solve | `data/gaia_hip_main.dat.gz` |
-| `tetra3rs_13deg.bin` | tetra3rs | `data/gaia_hipp_merged.bin` |
-| `manifest.json` | — | Generation parameters, input/output SHA-256s, generator versions |
+| Asset | FOV band | Solver | Built from |
+|-------|----------|--------|-----------|
+| `diofinder_13deg.npz` | 13°–14° | cedar-solve / olive-solve | `data/gaia_hip_main.dat.gz` |
+| `tetra3rs_13deg.bin` | 10.5°–14° | tetra3rs | `data/gaia_hipp_merged.bin` |
+| `manifest.json` | — | — | Generation parameters, per-database FOV bands, input/output SHA-256s, generator versions |
 
 ### Deep build (G ≤ 8.5)
 
-For poor-transparency nights.  Same FOV range, magnitude limit raised to 8.5.
+For poor-transparency nights.  Same per-database FOV bands as above, magnitude
+limit raised to 8.5.
 Built from a deeper source catalog (G ≤ 9.0) that is **not** committed to git
 because of its size; see [Regenerating the deep source catalog](#regenerating-the-deep-source-catalog) below.
 
