@@ -23,9 +23,10 @@ variant produces:
 Pass --hip-catalog data/hip_main.dat.gz to build the .npz from the original
 Hipparcos catalog instead (41,394 stars to V = 8.0).
 
-Both databases cover 10.5°-14° FOV. All catalog inputs are committed (or
-manually generated, for the deep catalog) under data/ — no network access is
-required for generation.
+The diofinder database covers a tight 13°-14° FOV band (the device's fixed
+~13.64° lens); the tetra3rs database covers the wider 10.5°-14° band. All
+catalog inputs are committed (or manually generated, for the deep catalog)
+under data/ — no network access is required for generation.
 
 A manifest.json is written alongside the databases recording generation
 parameters, input/output SHA-256 hashes, and generator package versions.
@@ -34,7 +35,7 @@ Usage:
   # Standard build (G ≤ 8.0):
   python generate_databases.py [--output-dir DIR]
                                [--hip-catalog PATH] [--gaia-catalog PATH]
-                               [--skip-cedar-solve] [--skip-tetra3rs]
+                               [--skip-diofinder] [--skip-tetra3rs]
 
   # Deep build (G ≤ 8.5):
   python generate_databases.py --variant deep [--output-dir DIR]
@@ -130,7 +131,7 @@ def resolve_hip_catalog(path: pathlib.Path, output_dir: pathlib.Path) -> pathlib
     return path
 
 
-def generate_cedar_solve(
+def generate_diofinder_db(
     output_dir: pathlib.Path,
     hip_catalog: pathlib.Path,
     max_magnitude: float,
@@ -203,19 +204,49 @@ def git_head() -> str:
         return "unknown"
 
 
+def _output_fov_band(name: str) -> tuple[float, float] | None:
+    """FOV band (min, max) in degrees for an output, by name.
+
+    The diofinder database ships a tighter band than tetra3rs (see the
+    DIOFINDER_FOV_* / FOV_* constants). Non-database outputs (e.g.
+    star_names) have no FOV band.
+    """
+    if name.startswith("diofinder"):
+        return (DIOFINDER_FOV_MIN, DIOFINDER_FOV_MAX)
+    if name.startswith("tetra3rs"):
+        return (FOV_MIN, FOV_MAX)
+    return None
+
+
 def write_manifest(
     output_dir: pathlib.Path,
     inputs: dict[str, pathlib.Path],
     outputs: dict[str, pathlib.Path],
     extra_parameters: dict | None = None,
 ) -> pathlib.Path:
+    # FOV is per-database (diofinder is a tighter band than tetra3rs), so it is
+    # recorded on each output entry rather than as a single top-level range that
+    # would misrepresent one of the two databases.
     parameters: dict = {
-        "fov_min_deg": FOV_MIN,
-        "fov_max_deg": FOV_MAX,
+        "fov_bands_deg": {
+            "diofinder": [DIOFINDER_FOV_MIN, DIOFINDER_FOV_MAX],
+            "tetra3rs": [FOV_MIN, FOV_MAX],
+        },
         "epoch_proper_motion_year": EPOCH_YEAR,
     }
     if extra_parameters:
         parameters.update(extra_parameters)
+
+    def _output_entry(name: str, p: pathlib.Path) -> dict:
+        entry = {
+            "file": p.name,
+            "size_bytes": p.stat().st_size,
+            "sha256": sha256_of(p),
+        }
+        band = _output_fov_band(name)
+        if band is not None:
+            entry["fov_min_deg"], entry["fov_max_deg"] = band
+        return entry
 
     manifest = {
         "generated_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
@@ -230,11 +261,7 @@ def write_manifest(
             for name, p in inputs.items()
         },
         "outputs": {
-            name: {
-                "file": p.name,
-                "size_bytes": p.stat().st_size,
-                "sha256": sha256_of(p),
-            }
+            name: _output_entry(name, p)
             for name, p in outputs.items()
         },
     }
@@ -270,7 +297,7 @@ def build_variant(
     output_dir: pathlib.Path,
     hip_catalog_override: str | None,
     gaia_catalog_override: str | None,
-    skip_cedar_solve: bool,
+    skip_diofinder: bool,
     skip_tetra3rs: bool,
     allow_missing_deep_catalog: bool = False,
 ) -> tuple[dict[str, pathlib.Path], dict[str, pathlib.Path], list[str]]:
@@ -288,7 +315,7 @@ def build_variant(
     # than error, so the workflow doesn't break before the catalog is committed.
     if max_magnitude != DEFAULT_MAGNITUDE:
         missing = []
-        if not skip_cedar_solve and not hip_src.exists():
+        if not skip_diofinder and not hip_src.exists():
             missing.append(str(hip_src))
         if not skip_tetra3rs and not gaia_catalog.exists():
             missing.append(str(gaia_catalog))
@@ -310,19 +337,19 @@ def build_variant(
     suffix = _magnitude_suffix(max_magnitude)
     label = f"mag{suffix[1:]}" if suffix else "standard"
 
-    if not skip_cedar_solve:
+    if not skip_diofinder:
         if not hip_src.exists():
-            errors.append(f"cedar-solve ({label}): hip catalog not found: {hip_src}")
+            errors.append(f"diofinder ({label}): hip catalog not found: {hip_src}")
         else:
             inputs[f"hip_catalog{suffix}"] = hip_src
             try:
                 hip_catalog = resolve_hip_catalog(hip_src, output_dir)
-                outputs[f"diofinder{suffix}"] = generate_cedar_solve(
+                outputs[f"diofinder{suffix}"] = generate_diofinder_db(
                     output_dir, hip_catalog, max_magnitude
                 )
             except Exception as exc:
-                print(f"ERROR generating cedar-solve database ({label}): {exc}", file=sys.stderr)
-                errors.append(f"cedar-solve ({label}): {exc}")
+                print(f"ERROR generating diofinder database ({label}): {exc}", file=sys.stderr)
+                errors.append(f"diofinder ({label}): {exc}")
 
     if not skip_tetra3rs:
         if not gaia_catalog.exists():
@@ -353,8 +380,8 @@ def main() -> None:
     ap.add_argument("--gaia-catalog", default=None,
                     help="Path to merged Gaia binary catalog "
                          "(overrides per-variant default)")
-    ap.add_argument("--skip-cedar-solve", action="store_true",
-                    help="Skip cedar-solve .npz generation")
+    ap.add_argument("--skip-diofinder", action="store_true",
+                    help="Skip diofinder .npz generation (cedar-solve engine)")
     ap.add_argument("--skip-tetra3rs", action="store_true",
                     help="Skip tetra3rs .bin generation")
 
@@ -404,7 +431,7 @@ def main() -> None:
             output_dir=output_dir,
             hip_catalog_override=args.hip_catalog,
             gaia_catalog_override=args.gaia_catalog,
-            skip_cedar_solve=args.skip_cedar_solve,
+            skip_diofinder=args.skip_diofinder,
             skip_tetra3rs=args.skip_tetra3rs,
             allow_missing_deep_catalog=allow_missing,
         )
