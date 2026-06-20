@@ -4,10 +4,10 @@ name: Build Databases
 # and publishes them as assets on a tagged GitHub release.
 #
 # Standard databases (G ≤ 8.0):
-#   cedar_solve_13deg.npz, tetra3rs_13deg.bin
+#   diofinder_13deg.npz, tetra3rs_13deg.bin
 #
 # Deep databases (G ≤ 8.5, for poor-transparency nights):
-#   cedar_solve_13deg_mag85.npz, tetra3rs_13deg_mag85.bin
+#   diofinder_13deg_mag85.npz, tetra3rs_13deg_mag85.bin
 #   Built only when data/gaia_hipp_merged_mag90.{bin,dat.gz} are present.
 #   See README.md for how to generate the deeper source catalog.
 #
@@ -85,9 +85,9 @@ jobs:
         with:
           name: star-databases
           path: |
-            databases/cedar_solve_13deg.npz
+            databases/diofinder_13deg.npz
             databases/tetra3rs_13deg.bin
-            databases/cedar_solve_13deg_mag85.npz
+            databases/diofinder_13deg_mag85.npz
             databases/tetra3rs_13deg_mag85.bin
             databases/manifest.json
             databases/star_names.csv
@@ -101,7 +101,7 @@ jobs:
         with:
           name: star-databases-standard
           path: |
-            databases/cedar_solve_13deg.npz
+            databases/diofinder_13deg.npz
             databases/tetra3rs_13deg.bin
             databases/manifest.json
             databases/star_names.csv
@@ -133,14 +133,14 @@ jobs:
 
           # Always attach standard databases.
           ASSETS=(
-            databases/cedar_solve_13deg.npz
+            databases/diofinder_13deg.npz
             databases/tetra3rs_13deg.bin
             databases/manifest.json
             databases/star_names.csv
           )
 
           # Attach deep databases only when they were built.
-          for f in databases/cedar_solve_13deg_mag85.npz databases/tetra3rs_13deg_mag85.bin; do
+          for f in databases/diofinder_13deg_mag85.npz databases/tetra3rs_13deg_mag85.bin; do
             [[ -f "$f" ]] && ASSETS+=("$f")
           done
 

@@ -4,7 +4,8 @@ Generate star catalog databases for the Pi Zero 2W finder.
 
 Two formats are produced, both from the same merged Gaia DR3 + Hipparcos
 star list:
-  cedar_solve_13deg.npz      -- cedar-solve / olive-solve (.npz, from
+  diofinder_13deg.npz        -- diofinder / olive-solve (.npz, cedar-solve
+                                engine, 13–14° FOV band, from
                                 data/gaia_hip_main.dat.gz — hip_main-format
                                 file derived from the Gaia merge by
                                 scripts/gaia_to_hip.py)
@@ -16,7 +17,7 @@ source catalog (G ≤ 9.0) in data/gaia_hipp_merged_mag90.{bin,csv} and
 data/gaia_hipp_merged_mag90.dat.gz (hip_main format).  See README.md for how
 to generate that catalog.  When the deep catalog files are present the deep
 variant produces:
-  cedar_solve_13deg_mag85.npz
+  diofinder_13deg_mag85.npz
   tetra3rs_13deg_mag85.bin
 
 Pass --hip-catalog data/hip_main.dat.gz to build the .npz from the original
@@ -57,6 +58,12 @@ import sys
 
 FOV_MIN = 10.5
 FOV_MAX = 14.0
+# The diofinder DB ships a tighter FOV band than the (wider) tetra3rs DB: the
+# device's 25 mm lens is a fixed ~13.64°, so a 13–14° catalogue drops off-scale
+# patterns the solver would never match. Margin is left for the cold ±0.3°
+# search window (13.64 ± 0.3 = [13.34, 13.94] ⊂ [13, 14]).
+DIOFINDER_FOV_MIN = 13.0
+DIOFINDER_FOV_MAX = 14.0
 EPOCH_YEAR = 2026.0
 
 # Default magnitude for the standard build.
@@ -138,17 +145,20 @@ def generate_cedar_solve(
         print(f"  Copied hip_main.dat → {hip_dest}")
 
     suffix = _magnitude_suffix(max_magnitude)
-    db_stem = output_dir / f"cedar_solve_13deg{suffix}"
-    print(f"Generating cedar-solve database → {db_stem}.npz")
-    print(f"  max_fov={FOV_MAX}, min_fov={FOV_MIN}, star_max_magnitude={max_magnitude}")
+    # Output is branded "diofinder" (the downstream consumer); cedar-solve is
+    # the generation engine. Tighter diofinder FOV band (see constants above).
+    db_stem = output_dir / f"diofinder_13deg{suffix}"
+    print(f"Generating diofinder database (cedar-solve engine) → {db_stem}.npz")
+    print(f"  max_fov={DIOFINDER_FOV_MAX}, min_fov={DIOFINDER_FOV_MIN}, "
+          f"star_max_magnitude={max_magnitude}")
 
     # save_as must be a pathlib.Path: cedar-solve treats a str as a file
     # name inside its own package data directory
     t3 = t3_mod.Tetra3(load_database=None)
     t3.generate_database(
         save_as=db_stem.resolve(),
-        max_fov=FOV_MAX,
-        min_fov=FOV_MIN,
+        max_fov=DIOFINDER_FOV_MAX,
+        min_fov=DIOFINDER_FOV_MIN,
         star_max_magnitude=max_magnitude,
         star_catalog="hip_main",
         epoch_proper_motion=EPOCH_YEAR,
@@ -307,7 +317,7 @@ def build_variant(
             inputs[f"hip_catalog{suffix}"] = hip_src
             try:
                 hip_catalog = resolve_hip_catalog(hip_src, output_dir)
-                outputs[f"cedar_solve{suffix}"] = generate_cedar_solve(
+                outputs[f"diofinder{suffix}"] = generate_cedar_solve(
                     output_dir, hip_catalog, max_magnitude
                 )
             except Exception as exc:
