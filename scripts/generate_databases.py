@@ -84,6 +84,11 @@ DEEP_GAIA_CATALOG = REPO_ROOT / "data" / "gaia_hipp_merged_mag90.bin"
 # so the device can label the brightest star in a solved field.
 STAR_NAMES_CATALOG = REPO_ROOT / "data" / "star_names.csv"
 
+# Static Messier catalog (built by scripts/build_messier.py). Same idea: a small
+# committed CSV attached to releases so the device can label the bright DSO the
+# aim point is on ("centered object"). Display only.
+MESSIER_CATALOG = REPO_ROOT / "data" / "messier.csv"
+
 
 def _magnitude_suffix(max_magnitude: float) -> str:
     """Return output-file suffix for a given magnitude limit.
@@ -447,6 +452,14 @@ def main() -> None:
             shutil.copy(STAR_NAMES_CATALOG, dest)
         all_outputs["star_names"] = dest
         print(f"Including star-names catalog: {dest.name}")
+
+    # Same for the Messier catalog ("centered object" label).
+    if MESSIER_CATALOG.exists():
+        dest = output_dir / MESSIER_CATALOG.name
+        if dest.resolve() != MESSIER_CATALOG.resolve():
+            shutil.copy(MESSIER_CATALOG, dest)
+        all_outputs["messier"] = dest
+        print(f"Including Messier catalog: {dest.name}")
 
     if all_outputs:
         # Collect magnitude parameters for manifest.
